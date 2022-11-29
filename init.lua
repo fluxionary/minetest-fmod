@@ -1,73 +1,65 @@
-local function parse_version(version)
-	local y, m, d, h, mi, s
-	y, m, d = version:match("^(%d%d%d%d)-(%d%d)-(%d%d)$")
-	if y and m and d then
-		return os.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) })
-	end
+local f = string.format
 
-	y, m, d, s = version:match("^(%d%d%d%d)-(%d%d)-(%d%d)[%.%s](%d+)$")
-	if y and m and d and s then
-		return os.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), sec = tonumber(s) })
-	end
+local get_current_modname = minetest.get_current_modname
+local get_modpath = minetest.get_modpath
 
-	y, m, d, h, mi, s = version:match("^(%d%d%d%d)-(%d%d)-(%d%d)[T ](%d%d):(%d%d):(%d%d)$")
-	if y and m and d and h and mi and s then
-		return os.time({
-			year = tonumber(y),
-			month = tonumber(m),
-			day = tonumber(d),
-			hour = tonumber(h),
-			min = tonumber(mi),
-			sec = tonumber(s),
-		})
-	end
+local our_modname = get_current_modname()
+local our_modpath = get_modpath(our_modname)
 
-	error(string.format("can't parse version %q", version))
-end
+local build_has = dofile(our_modpath .. DIR_DELIM .. "build_has.lua")
+local get_settings = dofile(our_modpath .. DIR_DELIM .. "get_settings.lua")
+local parse_version = dofile(our_modpath .. DIR_DELIM .. "parse_version.lua")
 
-local function build_has(mod_conf)
-	local optional_depends = mod_conf:get("optional_depends")
-	if not optional_depends then
-		return {}
-	end
-	local has = {}
-	for _, mod in ipairs(optional_depends:split()) do
-		mod = mod:trim()
-		has[mod] = minetest.get_modpath(mod) and true or false
-	end
-	return has
-end
-
-local function create(fork)
-	local f = string.format
-
-	local modname = minetest.get_current_modname()
-	local modpath = minetest.get_modpath(modname)
+local function create(fork, extra_private_state)
+	local modname = get_current_modname()
+	local modpath = get_modpath(modname)
 	local S = minetest.get_translator(modname)
+	local F = minetest.formspec_escape
 
 	local mod_conf = Settings(modpath .. DIR_DELIM .. "mod.conf")
 	assert(modname == mod_conf:get("name"), "mod name mismatch")
 
 	local version = parse_version(mod_conf:get("version"))
 
+	local private_state = {
+		mod_storage = minetest.get_mod_storage(),
+	}
+
+	if extra_private_state then
+		for k, v in pairs(extra_private_state) do
+			private_state[k] = v
+		end
+	end
+
 	return {
 		modname = modname,
 		modpath = modpath,
+
 		title = mod_conf:get("title") or modname,
 		description = mod_conf:get("description"),
 		author = mod_conf:get("author"),
 		license = mod_conf:get("license"),
+		media_license = mod_conf:get("media_license"),
+		url = mod_conf:get("url"),
 		version = version,
 		fork = fork or "flux",
 
 		S = S,
+		FS = function(...)
+			return F(S(...))
+		end,
 
 		has = build_has(mod_conf),
+		settings = get_settings(modname, modpath),
 
 		check_version = function(required)
+			if type(required) == "table" then
+				required = os.time(required)
+			end
+			local calling_modname = minetest.get_current_modname() or "UNKNOWN"
 			assert(
 				version >= required,
-				f("%s requires a newer version of %s; please update it", minetest.get_current_modname(), modname)
+				f("%s requires a newer version of %s; please update it", calling_modname, modname)
 			)
 		end,
 
@@ -75,8 +67,23 @@ local function create(fork)
 			return minetest.log(level, f("[%s] %s", modname, f(messagefmt, ...)))
 		end,
 
+		chat_send_player = function(player, messagefmt, ...)
+			if type(player) ~= "string" then
+				player = player:get_player_name()
+			end
+
+			minetest.chat_send_player(player, f("[%s] %s", modname, S(messagefmt, ...)))
+		end,
+
+		chat_send_all = function(message, ...)
+			minetest.chat_send_all(f("[%s] %s", modname, S(message, ...)))
+		end,
+
 		dofile = function(...)
-			return dofile(table.concat({ modpath, ... }, DIR_DELIM) .. ".lua")
+			assert(modname == get_current_modname(), "attempt to call dofile from external mod")
+			local filename = table.concat({ modpath, ... }, DIR_DELIM) .. ".lua"
+			local loader = assert(loadfile(filename))
+			return loader(private_state)
 		end,
 	}
 end
