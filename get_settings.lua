@@ -60,6 +60,9 @@ local getters = {
 	enum = function(full_name, default)
 		return minetest.settings:get(full_name) or default
 	end,
+	flags = function(full_name, default)
+		return (minetest.settings:get(full_name) or default):split()
+	end,
 }
 
 return function(modname, modpath)
@@ -87,11 +90,11 @@ return function(modname, modpath)
 		end,
 	}
 	for _, line in ipairs(settingtypes_lines) do
-		local full_name, short_name, datatype, default = parse_line(modname, line)
+		local full_name, short_name, datatype, default, params = parse_line(modname, line)
 		if full_name then
 			local getter = getters[datatype]
 			if getter then
-				settings[short_name] = getter(full_name, default)
+				settings[short_name] = getter(full_name, default, params)
 			else
 				error("TODO: implement parsing settings of type " .. datatype)
 			end
