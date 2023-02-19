@@ -40,7 +40,7 @@ local function create(fork, extra_private_state)
 		author = mod_conf:get("author"),
 		license = mod_conf:get("license"),
 		media_license = mod_conf:get("media_license"),
-		url = mod_conf:get("url"),
+		website = mod_conf:get("website") or mod_conf:get("url"),
 		version = version,
 		fork = fork or "flux",
 
