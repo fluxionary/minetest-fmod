@@ -28,7 +28,7 @@ local function strip_readable_name(text)
 end
 
 local function parse_line(modname, line)
-	if line:match("^#") or line:match("^%s*$") then
+	if line:match("^%s*#") or line:match("^%s*%[") or line:match("^%s*$") then
 		return
 	end
 	line = line:trim()
@@ -72,23 +72,7 @@ return function(modname, modpath)
 		return
 	end
 
-	local settings = {
-		_listeners = {},
-
-		_subscribe_for_modification = function(self, name, func)
-			local listeners = self._listeners[name] or {}
-			table.insert(listeners, func)
-			self._listeners[name] = listeners
-		end,
-
-		modify_setting = function(self, name, value)
-			value = tonumber(value)
-			self[name] = value
-			for _, func in ipairs(self._listeners[name] or {}) do
-				func(value)
-			end
-		end,
-	}
+	local settings = {}
 	for _, line in ipairs(settingtypes_lines) do
 		local full_name, short_name, datatype, default, params = parse_line(modname, line)
 		if full_name then
@@ -101,5 +85,23 @@ return function(modname, modpath)
 		end
 	end
 
-	return settings
+	local listeners_by_key = {}
+
+	return setmetatable({
+		_subscribe_for_modification = function(self, key, func)
+			local listeners = listeners_by_key[key] or {}
+			table.insert(listeners, func)
+			listeners_by_key[key] = listeners
+		end,
+	}, {
+		__index = function(self, key)
+			return settings[key]
+		end,
+		__newindex = function(self, key, value)
+			settings[key] = value
+			for _, func in ipairs(listeners_by_key[key] or {}) do
+				func(value)
+			end
+		end,
+	})
 end
