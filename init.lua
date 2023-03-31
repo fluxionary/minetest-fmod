@@ -63,6 +63,51 @@ local function create(fork, extra_private_state)
 			)
 		end,
 
+		check_minetest_version = function(major, minor, patch, reason)
+			local mt_version = minetest.get_version()
+			if not mt_version.project == "Minetest" then
+				if reason then
+					error(f("%s requires official minetest because it %q", modname, reason))
+				else
+					error(f("%s requires official minetest", modname))
+				end
+			end
+			local mt_major, mt_minor, mt_patch = mt_version.string:match("^(%d+)%.(%d+)%.(%d+)")
+			if not (mt_major and mt_minor and mt_patch) then
+				error(
+					f(
+						"%s is not compatible w/ minetest %s because we don't understand the version",
+						modname,
+						mt_version.string
+					)
+				)
+			end
+			mt_major = tonumber(mt_major)
+			mt_minor = tonumber(mt_minor)
+			mt_patch = tonumber(mt_patch)
+			local check = true
+			if mt_major < major then
+				check = false
+			elseif mt_major == major then
+				if mt_minor < minor then
+					check = false
+				elseif mt_minor == minor then
+					if mt_patch < patch then
+						check = false
+					end
+				end
+			end
+			if not check then
+				if reason then
+					error(
+						f("%s requires at least minetest %i.%i.%i because it %q", modname, major, minor, patch, reason)
+					)
+				else
+					error(f("%s requires at least minetest %i.%i.%i", modname, major, minor, patch))
+				end
+			end
+		end,
+
 		log = function(level, messagefmt, ...)
 			return minetest.log(level, f("[%s] %s", modname, f(messagefmt, ...)))
 		end,
