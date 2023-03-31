@@ -68,7 +68,7 @@ local function create(fork, extra_private_state)
 		end,
 
 		chat_send_player = function(player, messagefmt, ...)
-			if type(player) ~= "string" then
+			if player.get_player_name then
 				player = player:get_player_name()
 			end
 
