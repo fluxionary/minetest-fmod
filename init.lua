@@ -65,7 +65,7 @@ local function create(fork, extra_private_state)
 
 		check_minetest_version = function(major, minor, patch, reason)
 			local mt_version = minetest.get_version()
-			if not mt_version.project == "Minetest" then
+			if mt_version.project ~= "Minetest" then
 				if reason then
 					error(f("%s requires official minetest because it %q", modname, reason))
 				else
