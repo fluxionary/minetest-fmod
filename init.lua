@@ -22,6 +22,8 @@ local function create(fork, extra_private_state)
 	local version = parse_version(mod_conf:get("version"))
 
 	local private_state = {
+		-- minetest.request_insecure_environment() can't be used here
+		-- minetest.request_http_api() can't be used here
 		mod_storage = minetest.get_mod_storage(),
 	}
 
@@ -130,7 +132,8 @@ local function create(fork, extra_private_state)
 			local loader = assert(loadfile(filename))
 			return loader(private_state)
 		end,
-	}
+	},
+		private_state
 end
 
 fmod = create()
