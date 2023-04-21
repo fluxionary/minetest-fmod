@@ -27,6 +27,10 @@ local function strip_readable_name(text)
 	return text:sub(i):trim()
 end
 
+local function starts_with(s, start)
+	return s:sub(1, #start) == start
+end
+
 local function parse_line(modname, line)
 	if line:match("^%s*#") or line:match("^%s*%[") or line:match("^%s*$") then
 		return
@@ -35,6 +39,9 @@ local function parse_line(modname, line)
 	local full_name, rest = unpack(line:split("%s+", false, 1, true))
 	if not (full_name and rest) then
 		return
+	end
+	if starts_with(full_name, "secure.") then
+		full_name = full_name:sub(#"secure." + 1)
 	end
 	local mn, short_name = unpack(full_name:split("[:%.]", false, 1, true))
 	assert(mn == modname, f("invalid setting name %s", full_name))
