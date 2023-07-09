@@ -61,7 +61,13 @@ local function create(fork, extra_private_state)
 			local calling_modname = minetest.get_current_modname() or "UNKNOWN"
 			assert(
 				version >= required,
-				f("%s requires a newer version of %s; please update it", calling_modname, modname)
+				f(
+					"%s requires a newer version of %s; please update it (have %s, require %s)",
+					calling_modname,
+					modname,
+					version,
+					required
+				)
 			)
 		end,
 
