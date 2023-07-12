@@ -24,7 +24,7 @@ local function create(fork, extra_private_state)
 	local private_state = {
 		-- minetest.request_insecure_environment() can't be used here
 		-- minetest.request_http_api() can't be used here
-		mod_storage = minetest.get_mod_storage(),
+		mod_storage = INIT == "game" and minetest.get_mod_storage(),
 	}
 
 	if extra_private_state then
@@ -120,7 +120,7 @@ local function create(fork, extra_private_state)
 			return minetest.log(level, f("[%s] %s", modname, f(messagefmt, ...)))
 		end,
 
-		chat_send_player = function(player, messagefmt, ...)
+		chat_send_player = INIT == "game" and function(player, messagefmt, ...)
 			if player.get_player_name then
 				player = player:get_player_name()
 			end
@@ -128,7 +128,7 @@ local function create(fork, extra_private_state)
 			minetest.chat_send_player(player, f("[%s] %s", modname, S(messagefmt, ...)))
 		end,
 
-		chat_send_all = function(message, ...)
+		chat_send_all = INIT == "game" and function(message, ...)
 			minetest.chat_send_all(f("[%s] %s", modname, S(message, ...)))
 		end,
 
@@ -144,3 +144,7 @@ end
 
 fmod = create()
 fmod.create = create
+
+if INIT == "game" then
+	minetest.register_async_dofile(fmod.modpath .. DIR_DELIM .. "init.lua")
+end
