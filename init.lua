@@ -138,6 +138,12 @@ local function create(fork, extra_private_state)
 			local loader = assert(loadfile(filename))
 			return loader(private_state)
 		end,
+
+		async_dofile = function(...)
+			assert(modname == get_current_modname(), "attempt to call async_dofile from external mod")
+			local filename = table.concat({ modpath, ... }, DIR_DELIM) .. ".lua"
+			return minetest.register_async_dofile(filename)
+		end,
 	},
 		private_state
 end
@@ -146,5 +152,5 @@ fmod = create()
 fmod.create = create
 
 if INIT == "game" then
-	minetest.register_async_dofile(fmod.modpath .. DIR_DELIM .. "init.lua")
+	fmod.async_dofile("init")
 end
