@@ -52,6 +52,7 @@ local function parse_line(modname, line)
 end
 
 local getters = {
+	-- TODO there's other setting types, but i don't use them and no-one else uses this mod
 	int = function(full_name, default)
 		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
 	end,
@@ -72,7 +73,8 @@ local getters = {
 	end,
 }
 
-return function(modname, modpath)
+return function(modname)
+	local modpath = minetest.get_modpath(modname)
 	local settingtypes_lines = get_lines_from_file(modpath .. DIR_DELIM .. "settingtypes.txt")
 
 	if not settingtypes_lines then

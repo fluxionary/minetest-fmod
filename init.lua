@@ -52,34 +52,43 @@ local function create(fork, extra_private_state)
 		end,
 
 		has = build_has(mod_conf),
-		settings = get_settings(modname, modpath),
+		settings = get_settings(modname),
 
-		check_version = function(required)
+		check_version = function(required, reason)
 			if type(required) == "table" then
 				required = os.time(required)
 			end
 			local calling_modname = minetest.get_current_modname() or "UNKNOWN"
-			assert(
-				version >= required,
-				f(
-					"%s requires a newer version of %s; please update it (have %s, require %s)",
-					calling_modname,
-					modname,
-					version,
-					required
+			if reason then
+				assert(
+					version >= required,
+					f(
+						"%s requires a newer version of %s because %q; please update it (have %s, require %s)",
+						calling_modname,
+						modname,
+						reason,
+						version,
+						required
+					)
 				)
-			)
+			else
+				assert(
+					version >= required,
+					f(
+						"%s requires a newer version of %s; please update it (have %s, require %s)",
+						calling_modname,
+						modname,
+						version,
+						required
+					)
+				)
+			end
 		end,
 
-		check_minetest_version = function(major, minor, patch, reason)
+		check_minetest_version = function(major, minor, patch, other, reason)
 			local mt_version = minetest.get_version()
-			if mt_version.project ~= "Minetest" then
-				if reason then
-					error(f("%s requires official minetest because it %q", modname, reason))
-				else
-					error(f("%s requires official minetest", modname))
-				end
-			end
+			-- TODO: figure out how to allow various "projects" (e.g. Minetest, Multicraft) properly
+			-- TODO: we perhaps want to allow depending on multiple projects, so this is complicated.
 			local mt_major, mt_minor, mt_patch = mt_version.string:match("^(%d+)%.(%d+)%.(%d+)")
 			if not (mt_major and mt_minor and mt_patch) then
 				error(
