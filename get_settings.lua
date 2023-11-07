@@ -1,3 +1,6 @@
+-- https://github.com/minetest/minetest/blob/master/builtin/settingtypes.txt
+-- https://github.com/minetest/minetest/blob/master/builtin/mainmenu/settings/settingtypes.lua
+
 local f = string.format
 
 local function get_lines_from_file(filename)
@@ -43,10 +46,26 @@ local function parse_line(modname, line)
 	if starts_with(full_name, "secure.") then
 		full_name = full_name:sub(#"secure." + 1)
 	end
-	local mn, short_name = unpack(full_name:split("[:%.]", false, 1, true))
-	assert(mn == modname, f("invalid setting name %s", full_name))
+	local modname2, short_name = unpack(full_name:split("[:%.]", false, 1, true))
+	assert(modname2 == modname, f("invalid setting name %s", full_name))
 	rest = strip_readable_name(rest)
-	local datatype, default, params = unpack(rest:split("%s+", false, 2, true))
+	local datatype, default, params
+	datatype, rest = unpack(rest:split("%s", true, 1, true))
+	rest = rest or ""
+	if datatype == "string" then
+		if rest:sub(1, 1) == '"' and rest:sub(#rest, #rest) == '"' then
+			-- this is not actually according to spec settingtypes.txt, but there's no good way to specify that the
+			-- default value is a single space, so we invent our own syntax
+			default = rest:sub(2, #rest - 1)
+		elseif rest:sub(1, 2) == '\\"' then
+			default = rest:sub(2)
+		else
+			default = rest
+		end
+		params = ""
+	else
+		default, params = unpack(rest:split("%s+", false, 1, true))
+	end
 
 	return full_name, short_name, datatype, default, params
 end
