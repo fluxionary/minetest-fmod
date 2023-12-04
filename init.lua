@@ -63,7 +63,9 @@ local function create(fork, extra_private_state)
 				assert(
 					version >= required,
 					f(
-						"%s requires a newer version of %s because %q; please update it (have %s, require %s)",
+						"%s requires a newer version of %s because %q; please update it.\n"
+							.. "go to the main game menu, click the content tab, browse online content, and update all.\n"
+							.. "(have %s, require %s)",
 						calling_modname,
 						modname,
 						reason,
@@ -75,7 +77,9 @@ local function create(fork, extra_private_state)
 				assert(
 					version >= required,
 					f(
-						"%s requires a newer version of %s; please update it (have %s, require %s)",
+						"%s requires a newer version of %s; please update it.\n"
+							.. "go to the main game menu, click the content tab, browse online content, and update all.\n"
+							.. "(have %s, require %s)",
 						calling_modname,
 						modname,
 						version,
