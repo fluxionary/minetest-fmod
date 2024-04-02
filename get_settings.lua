@@ -43,7 +43,9 @@ local function parse_line(modname, line)
 	if not (full_name and rest) then
 		return
 	end
+	local secure = false
 	if starts_with(full_name, "secure.") then
+		secure = true
 		full_name = full_name:sub(#"secure." + 1)
 	end
 	local modname2, short_name = unpack(full_name:split("[:%.]", false, 1, true))
@@ -67,27 +69,37 @@ local function parse_line(modname, line)
 		default, params = unpack(rest:split("%s+", false, 1, true))
 	end
 
-	return full_name, short_name, datatype, default, params
+	return full_name, short_name, datatype, default, params, secure
+end
+
+local function check_secure(full_name, secure)
+	return (secure and "secure." or "") .. full_name
 end
 
 local getters = {
 	-- TODO there's other setting types, but i don't use them and no-one else uses this mod
-	int = function(full_name, default)
+	int = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
 	end,
-	float = function(full_name, default)
+	float = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
 	end,
-	bool = function(full_name, default)
+	bool = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return minetest.settings:get_bool(full_name, minetest.is_yes(default))
 	end,
-	string = function(full_name, default)
+	string = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return minetest.settings:get(full_name) or default
 	end,
-	enum = function(full_name, default)
+	enum = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return minetest.settings:get(full_name) or default
 	end,
-	flags = function(full_name, default)
+	flags = function(full_name, default, params, secure)
+		full_name = check_secure(full_name, secure)
 		return (minetest.settings:get(full_name) or default):split()
 	end,
 }
@@ -102,11 +114,11 @@ return function(modname)
 
 	local settings = {}
 	for _, line in ipairs(settingtypes_lines) do
-		local full_name, short_name, datatype, default, params = parse_line(modname, line)
+		local full_name, short_name, datatype, default, params, secure = parse_line(modname, line)
 		if full_name then
 			local getter = getters[datatype]
 			if getter then
-				settings[short_name] = getter(full_name, default, params)
+				settings[short_name] = getter(full_name, default, params, secure)
 			else
 				error("TODO: implement parsing settings of type " .. datatype)
 			end
