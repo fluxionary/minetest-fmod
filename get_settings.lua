@@ -69,38 +69,41 @@ local function parse_line(modname, line)
 		default, params = unpack(rest:split("%s+", false, 1, true))
 	end
 
-	return full_name, short_name, datatype, default, params, secure
-end
-
-local function check_secure(full_name, secure)
-	return (secure and "secure." or "") .. full_name
+	full_name = (secure and "secure." or "") .. full_name
+	return full_name, short_name, datatype, default, params
 end
 
 local getters = {
 	-- TODO there's other setting types, but i don't use them and no-one else uses this mod
-	int = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
+	int = function(full_name, default, params)
 		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
 	end,
-	float = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
-		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
+	string = function(full_name, default, params)
+		return minetest.settings:get(full_name) or default
 	end,
-	bool = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
+	bool = function(full_name, default, params)
 		return minetest.settings:get_bool(full_name, minetest.is_yes(default))
 	end,
-	string = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
+	float = function(full_name, default, params)
+		return tonumber(minetest.settings:get(full_name)) or tonumber(default)
+	end,
+	enum = function(full_name, default, params)
 		return minetest.settings:get(full_name) or default
 	end,
-	enum = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
+	path = function(full_name, default, params)
+		return minetest.settings:get(full_name) or default or ""
+	end,
+	filepath = function(full_name, default, params)
+		return minetest.settings:get(full_name) or default or ""
+	end,
+	key = function(full_name, default, params)
 		return minetest.settings:get(full_name) or default
 	end,
-	flags = function(full_name, default, params, secure)
-		full_name = check_secure(full_name, secure)
+	flags = function(full_name, default, params)
 		return (minetest.settings:get(full_name) or default):split()
+	end,
+	v3f = function(full_name, default, params)
+		return minetest.string_to_pos(minetest.settings:get(full_name) or default)
 	end,
 }
 
@@ -114,11 +117,11 @@ return function(modname)
 
 	local settings = {}
 	for _, line in ipairs(settingtypes_lines) do
-		local full_name, short_name, datatype, default, params, secure = parse_line(modname, line)
+		local full_name, short_name, datatype, default, params = parse_line(modname, line)
 		if full_name then
 			local getter = getters[datatype]
 			if getter then
-				settings[short_name] = getter(full_name, default, params, secure)
+				settings[short_name] = getter(full_name, default, params)
 			else
 				error("TODO: implement parsing settings of type " .. datatype)
 			end
